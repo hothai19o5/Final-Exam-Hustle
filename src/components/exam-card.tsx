@@ -62,7 +62,7 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
         </CardTitle>
         <CardDescription className="flex items-center text-sm">
           <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-          Exam Date: {exam.examDate}
+          Ngày thi: {exam.examDate}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -70,42 +70,47 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
           <Clock className="h-8 w-8 text-accent" />
           <div>
             <p className="text-3xl font-bold text-accent">{daysLeft}</p>
-            <p className="text-sm text-muted-foreground">days remaining</p>
+            <p className="text-sm text-muted-foreground">còn lại</p>
           </div>
         </div>
         {daysLeft === 0 && (
-          <Badge variant="destructive" className="mt-4">Exam is Today!</Badge>
+          <Badge variant="destructive" className="mt-4">Hôm nay thi rồi shop!</Badge>
         )}
         {daysLeft > 0 && daysLeft <= 7 && (
-          <Badge variant="secondary" className="mt-4">Approaching Soon!</Badge>
+          <Badge variant="secondary" className="mt-4">Tới đít rồi á!</Badge>
         )}
 
         <div className="mt-6 pt-4 border-t border-border/50">
-          <h4 className="text-md font-medium mb-3 text-foreground/80">Exam Details:</h4>
+          <h4 className="text-md font-medium mb-3 text-foreground/80">Chi tiết:</h4>
           <ul className="space-y-2 text-sm">
             <li className="flex items-center">
               <Hash className="mr-2 h-4 w-4 text-primary shrink-0" />
-              <span className="text-muted-foreground">Class Code: </span>
+              <span className="text-muted-foreground">Mã lớp: </span>
               <span className="font-medium text-foreground/90 ml-1">{exam.classCode}</span>
+            </li>
+            <li className="flex items-center">
+              <Hash className="mr-2 h-4 w-4 text-primary shrink-0" />
+              <span className="text-muted-foreground">Mã lớp thi: </span>
+              <span className="font-medium text-foreground/90 ml-1">{exam.examCode}</span>
             </li>
             {exam.group && exam.group !== 'N/A' && (
               <li className="flex items-center">
                 <Users className="mr-2 h-4 w-4 text-primary shrink-0" />
-                <span className="text-muted-foreground">Group: </span>
+                <span className="text-muted-foreground">Nhóm: </span>
                 <span className="font-medium text-foreground/90 ml-1">{exam.group}</span>
               </li>
             )}
             {exam.examTeam && exam.examTeam !== 'N/A' && (
               <li className="flex items-center">
                 <Users2 className="mr-2 h-4 w-4 text-primary shrink-0" />
-                <span className="text-muted-foreground">Exam Team: </span>
+                <span className="text-muted-foreground">Kíp thi: </span>
                 <span className="font-medium text-foreground/90 ml-1">{exam.examTeam}</span>
               </li>
             )}
             {exam.examRoom && exam.examRoom !== 'N/A' && (
               <li className="flex items-center">
                 <MapPin className="mr-2 h-4 w-4 text-primary shrink-0" />
-                <span className="text-muted-foreground">Exam Room: </span>
+                <span className="text-muted-foreground">Phòng thi: </span>
                 <span className="font-medium text-foreground/90 ml-1">{exam.examRoom}</span>
               </li>
             )}

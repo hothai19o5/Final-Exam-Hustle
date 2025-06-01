@@ -20,6 +20,7 @@ export type ClientExamEntry = {
   group: string;
   examTeam: string;
   examRoom: string;
+  examCode: String;
 };
 
 export default function ExamTickerPage() {
@@ -43,12 +44,13 @@ export default function ExamTickerPage() {
     const localProcessedExams: ClientExamEntry[] = [];
 
     jsonData.forEach((row, rowIndex) => {
-      const getClassCode = (r: any) => r["Mã lớp"] || r["mã lớp"] || r["Class code"] || r["class code"];
-      const getCourseName = (r: any) => r["Tên học phần"] || r["tên học phần"] || r["Course name"] || r["course name"];
-      const getExamDate = (r: any) => r["Ngày thi"] || r["ngày thi"] || r["Exam date"] || r["exam date"];
-      const getGroup = (r: any) => r["Ca thi"] || r["ca thi"] || r["Exam Group"] || r["exam group"] || r["Group"] || r["group"];
-      const getExamTeam = (r: any) => r["Tổ thi"] || r["tổ thi"] || r["Exam Team"] || r["exam team"];
-      const getExamRoom = (r: any) => r["Phòng thi"] || r["phòng thi"] || r["Exam Room"] || r["exam room"];
+      const getClassCode = (r: any) => r["Mã lớp"];
+      const getCourseName = (r: any) => r["Tên học phần"];
+      const getExamDate = (r: any) => r["Ngày thi"];
+      const getGroup = (r: any) => r["Nhóm"];
+      const getExamTeam = (r: any) => r["Kíp thi"];
+      const getExamRoom = (r: any) => r["Phòng thi"];
+      const getExamCode = (r: any) => r["Mã lớp thi"];
 
       const classCodeValue = getClassCode(row);
       const courseNameValue = getCourseName(row);
@@ -56,8 +58,10 @@ export default function ExamTickerPage() {
       const groupValue = getGroup(row);
       const examTeamValue = getExamTeam(row);
       const examRoomValue = getExamRoom(row);
+      const examCodeValue = getExamCode(row);
 
       const classCode = classCodeValue?.toString().trim().toLowerCase();
+      const examCode = examCodeValue?.toString().trim().toLowerCase();
       const courseName = courseNameValue?.toString().trim();
       let examDateStr = "";
 
@@ -89,13 +93,14 @@ export default function ExamTickerPage() {
 
       if (classCode && courseName && examDateStr) { // We add all valid rows, filtering happens later
         localProcessedExams.push({
-          id: `${classCode}-${courseName}-${examDateStr}-${group}-${examTeam}-${examRoom}-${sourceFileName}-${rowIndex}`,
+          id: `${classCode}-${courseName}-${examDateStr}-${group}-${examTeam}-${examRoom}-${examCode}-${sourceFileName}-${rowIndex}`,
           classCode,
           courseName,
           examDate: examDateStr,
           group,
           examTeam,
-          examRoom
+          examRoom,
+          examCode
         });
       }
     });
@@ -354,7 +359,7 @@ export default function ExamTickerPage() {
                   {userExcelFile ? 'Loading File...' : 'Searching...'}
                 </>
               ) : (
-                "Get Exam Dates"
+                "Add"
               )}
             </Button>
           </form>
