@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ExamCard } from "@/components/exam-card";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, ListChecks, AlertCircle, Loader2, Info } from "lucide-react";
+import Image from 'next/image';
 
 export type ClientExamEntry = {
   id: string;
@@ -172,11 +173,8 @@ export default function ExamTickerPage() {
       setIsLoading(false);
 
       if (parseErrorOccurred) {
-        toast({ variant: "destructive", title: "Parsing Error", description: "Failed to parse the file. Check columns and data format." });
-        return;
-      }
-
-      if (finalNewExamsCount > 0) {
+        toastConfig = { variant: "destructive", title: "Parsing Error", description: "Failed to parse the file. Check columns and data format." };
+      } else if (finalNewExamsCount > 0) {
         toastConfig = { title: "Success", description: `${finalNewExamsCount} new exam(s) added.` };
       } else if (localProcessedExams.length > 0 && finalNewExamsCount === 0) {
         toastConfig = { title: "Info", description: `The exam(s) found are already in your list.` };
@@ -221,7 +219,8 @@ export default function ExamTickerPage() {
 
   return (
     <div className="container mx-auto flex flex-col items-center py-8 px-4 min-h-screen">
-      <header className="mb-10 text-center">
+      <header className="mb-10 text-center flex flex-col items-center">
+        <Image src="/logo.png" alt="University Logo" width={100} height={150} className="mb-4" />
         <h1 className="text-4xl sm:text-5xl font-bold text-primary-foreground drop-shadow-sm">Final Exam Hustle</h1>
         <p className="text-muted-foreground mt-2 text-lg">Upload your schedule and find your exams!</p>
       </header>
@@ -319,3 +318,4 @@ export default function ExamTickerPage() {
     </div>
   );
 }
+
