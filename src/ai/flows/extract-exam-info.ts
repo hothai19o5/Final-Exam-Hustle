@@ -53,26 +53,40 @@ const extractExamDetails = ai.defineTool(
     outputSchema: z.array(z.string().describe("A string containing course name and exam date, e.g., 'Course Name - DD.MM.YYYY'")),
   },
   async (toolInput) => {
-    console.log(`Mock extractExamDetails called for classCode: ${toolInput.classCode}. PDF parsing not implemented.`);
-    // This mock response should be tailored if specific test data is available or needed.
-    // The actual implementation would involve PDF parsing logic.
-    if (toolInput.classCode === "157324") {
-        // Simulate finding an exam for CS101
-        return ["Introduction to Programming - 20.06.2025"];
+    console.log(`Mock extractExamDetails called for classCode: ${toolInput.classCode}. Using hardcoded OCR data.`);
+    const classCode = toolInput.classCode;
+    const results: string[] = [];
+
+    // Data based on the provided OCR
+    if (classCode === "157324") {
+        results.push("Cở sở dữ liệu - 17.06.2025");
+        results.push("Cở sở dữ liệu - 17.06.2025");
+    } else if (classCode === "158785") {
+        results.push("Nhập môn trí tuệ nhân tạo - 18.06.2025");
+    } else if (classCode === "158786") {
+        results.push("Nhập môn trí tuệ nhân tạo - 18.06.2025");
+    } else if (classCode === "158789") {
+        results.push("Trò chơi số và tương tác I - 25.06.2025");
+    } else if (classCode === "158790") {
+        results.push("Trò chơi số và tương tác I - 25.06.2025");
+    } else if (classCode === "157325") {
+        results.push("Phân tích và thiết kế hệ thống - 04.07.2025");
+        results.push("Phân tích và thiết kế hệ thống - 04.07.2025");
+    } else if (classCode === "159364") {
+        results.push("Kỹ xảo điện ảnh - 26.06.2025");
+    } else if (classCode === "157329") {
+        results.push("Sinh học đại cương - 26.06.2025");
+    } else if (classCode === "157347") {
+        results.push("Technical Writing and Presentation - 18.06.2025");
+    } else if (classCode === "158483") {
+        results.push("Technical Writing and Presentation - 18.06.2025");
     }
-    if (toolInput.classCode === "158785") {
-        // Simulate finding an exam for MA201
-        return ["Data Structures and Algorithms - 25.06.2025"];
+    // Example of a past exam for testing daysRemaining = 0 logic
+    else if (classCode === "PASTEXAM01") {
+        results.push("Ancient History - 10.03.2024");
     }
-    if (toolInput.classCode === "PHYS202") {
-        // Simulate finding a past exam for testing daysRemaining = 0
-        return ["Modern Physics - 10.03.2024"];
-    }
-    if (toolInput.classCode === "MULTI101") {
-        // Simulate finding multiple exams for one code
-        return ["Multi-Course Part 1 - 01.12.2025", "Multi-Course Part 2 - 05.12.2025"];
-    }
-    return []; // Default to no results if class code doesn't match mock.
+
+    return results;
   }
 );
 
