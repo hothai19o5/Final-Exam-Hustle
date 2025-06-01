@@ -66,10 +66,13 @@ export default function ExamTickerPage() {
 
     setIsLoading(true);
     setError(null);
-    setExams(null);
+    // DO NOT setExams(null) here to preserve old results
 
     const reader = new FileReader();
     reader.onload = (e) => {
+      let localProcessedExams: ClientExamEntry[] = [];
+      let parseErrorOccurred = false;
+
       try {
         const data = e.target?.result;
         if (!data) throw new Error("Failed to read file data.");
@@ -79,7 +82,6 @@ export default function ExamTickerPage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        const processedExams: ClientExamEntry[] = [];
         const inputClassCodes = classCodes.split(',').map(code => code.trim().toLowerCase());
 
         jsonData.forEach((row, rowIndex) => {
@@ -89,7 +91,6 @@ export default function ExamTickerPage() {
           const getGroup = (r: any) => r["Ca thi"] || r["ca thi"] || r["Exam Group"] || r["exam group"] || r["Group"] || r["group"];
           const getExamTeam = (r: any) => r["Tổ thi"] || r["tổ thi"] || r["Exam Team"] || r["exam team"];
           const getExamRoom = (r: any) => r["Phòng thi"] || r["phòng thi"] || r["Exam Room"] || r["exam room"];
-
 
           const classCodeValue = getClassCode(row);
           const courseNameValue = getCourseName(row);
@@ -129,8 +130,8 @@ export default function ExamTickerPage() {
           const examRoom = examRoomValue?.toString().trim() || 'N/A';
 
           if (classCode && courseName && examDateStr && inputClassCodes.includes(classCode)) {
-            processedExams.push({
-              id: `${classCode}-${courseName}-${examDateStr}-${group}-${examTeam}-${examRoom}-${rowIndex}`, // Unique ID including rowIndex
+            localProcessedExams.push({
+              id: `${classCode}-${courseName}-${examDateStr}-${group}-${examTeam}-${examRoom}-${rowIndex}`,
               classCode,
               courseName,
               examDate: examDateStr,
@@ -143,24 +144,52 @@ export default function ExamTickerPage() {
           }
         });
 
-        if (processedExams.length > 0) {
-          setExams(processedExams);
-          toast({ title: "Success", description: `${processedExams.length} exam(s) found.` });
-        } else {
-          setExams([]);
-          toast({
-            title: "No Results",
-            description: "No matching exams found. Check class codes and ensure your file has 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns with correctly formatted data."
-          });
-        }
-
       } catch (parseError: any) {
         console.error("Parsing failed:", parseError);
-        const userMessage = "Failed to parse the file. Ensure it's a valid Excel/CSV and contains 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns.";
+        const userMessage = "Failed to parse the file. Ensure it's a valid Excel/CSV and contains 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns with correctly formatted data.";
         setError(userMessage);
         toast({ variant: "destructive", title: "Parsing Error", description: userMessage });
+        parseErrorOccurred = true;
       } finally {
-        setIsLoading(false);
+        // This 'finally' is for the try/catch around XLSX parsing.
+        // isLoading will be set to false after state updates.
+      }
+
+      setIsLoading(false); // Set loading to false after parsing and before state updates
+
+      if (parseErrorOccurred) {
+        return;
+      }
+
+      if (localProcessedExams.length > 0) {
+        setExams(prevExamsList => {
+          const currentExams = prevExamsList || [];
+          const existingExamIds = new Set(currentExams.map(ex => ex.id));
+          const uniqueNewExams = localProcessedExams.filter(ne => !existingExamIds.has(ne.id));
+
+          if (uniqueNewExams.length > 0) {
+            toast({ title: "Success", description: `${uniqueNewExams.length} new exam(s) added to your list.` });
+          } else if (localProcessedExams.length > 0) { // Exams were found by parser, but all were duplicates already in list
+            toast({ title: "Info", description: `The ${localProcessedExams.length} exam(s) found are already in your list.` });
+          }
+          return [...currentExams, ...uniqueNewExams];
+        });
+      } else { // No exams found in localProcessedExams from the current file/class code search
+        setExams(prevExamsList => {
+          if (!prevExamsList || prevExamsList.length === 0) { // No previous exams and no new ones
+            toast({
+              title: "No Results",
+              description: "No matching exams found for your current search. Check class codes and ensure your file has the required columns with correctly formatted data."
+            });
+            return []; // Ensure exams state is an empty array to trigger "No exams found" message
+          }
+          // Had previous exams, but this search yielded nothing new
+          toast({
+            title: "No New Exams Found",
+            description: "No additional matching exams found for the current search. Your existing list remains."
+          });
+          return prevExamsList; // Keep existing exams
+        });
       }
     };
 
