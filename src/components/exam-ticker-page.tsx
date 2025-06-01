@@ -14,7 +14,7 @@ import { UploadCloud, ListChecks, AlertCircle, Loader2, Info } from "lucide-reac
 
 // Define the type for exam entries processed on the client
 export type ClientExamEntry = {
-  id: string; // Unique ID for React key
+  id: string; // Unique ID for React key, includes rowIndex
   courseName: string;
   examDate: string; // "dd.MM.yyyy"
   classCode: string;
@@ -26,7 +26,7 @@ export type ClientExamEntry = {
 export default function ExamTickerPage() {
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [classCodes, setClassCodes] = useState<string>('');
-  const [exams, setExams] = useState<ClientExamEntry[] | null>(null);
+  const [exams, setExams] = useState<ClientExamEntry[]>([]); // Initialize with empty array
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -72,6 +72,7 @@ export default function ExamTickerPage() {
       let localProcessedExams: ClientExamEntry[] = [];
       let parseErrorOccurred = false;
       let toastConfig: Parameters<typeof toast>[0] | null = null;
+      const foundClassCodesForThisSearch = new Set<string>(); // Tracks class codes found in THIS search pass
 
       try {
         const data = e.target?.result;
@@ -129,7 +130,13 @@ export default function ExamTickerPage() {
           const examTeam = examTeamValue?.toString().trim() || 'N/A';
           const examRoom = examRoomValue?.toString().trim() || 'N/A';
 
-          if (classCode && courseName && examDateStr && inputClassCodes.includes(classCode)) {
+          if (
+            classCode &&
+            courseName &&
+            examDateStr &&
+            inputClassCodes.includes(classCode) &&
+            !foundClassCodesForThisSearch.has(classCode) // Only add if this class code hasn't been found yet in this search
+          ) {
             localProcessedExams.push({
               id: `${classCode}-${courseName}-${examDateStr}-${group}-${examTeam}-${examRoom}-${rowIndex}`,
               classCode,
@@ -139,6 +146,7 @@ export default function ExamTickerPage() {
               examTeam,
               examRoom
             });
+            foundClassCodesForThisSearch.add(classCode); // Mark this class code as found for this search pass
           } else if (classCode && courseName && inputClassCodes.includes(classCode) && !examDateStr) {
              console.warn(`Row ${rowIndex + 2}: Skipping exam for class ${classCode}, course ${courseName} due to missing or unparsable date. Found: '${examDateValue}'`);
           }
@@ -148,43 +156,57 @@ export default function ExamTickerPage() {
         console.error("Parsing failed:", parseError);
         const userMessage = "Failed to parse the file. Ensure it's a valid Excel/CSV and contains 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns with correctly formatted data.";
         setError(userMessage);
-        toast({ variant: "destructive", title: "Parsing Error", description: userMessage });
-        parseErrorOccurred = true;
+        parseErrorOccurred = true; // Set flag here so toast is handled after isLoading is set
       }
 
-      setIsLoading(false);
+      setIsLoading(false); // Moved here to ensure it's always set before toast
 
       if (parseErrorOccurred) {
+        // Handle toast for parsing error after isLoading is false
+        toast({ variant: "destructive", title: "Parsing Error", description: "Failed to parse the file. Ensure it's a valid Excel/CSV and contains the required columns with correctly formatted data." });
         return;
       }
+      
+      let newExamsCount = 0;
+      let duplicateCount = 0;
 
-      const currentExamList = exams || [];
       if (localProcessedExams.length > 0) {
-        const existingExamIds = new Set(currentExamList.map(ex => ex.id));
-        const uniqueNewExams = localProcessedExams.filter(ne => !existingExamIds.has(ne.id));
+        const currentExamIds = new Set(exams.map(ex => ex.id));
+        const uniqueNewExamsFromThisSearch = localProcessedExams.filter(ne => {
+          if (!currentExamIds.has(ne.id)) {
+            return true;
+          }
+          duplicateCount++;
+          return false;
+        });
 
-        if (uniqueNewExams.length > 0) {
-          setExams([...currentExamList, ...uniqueNewExams]);
-          toastConfig = { title: "Success", description: `${uniqueNewExams.length} new exam(s) added to your list.` };
-        } else { // Exams were found by parser, but all were duplicates already in list
-          toastConfig = { title: "Info", description: `The ${localProcessedExams.length} exam(s) found are already in your list.` };
-          if (exams === null) setExams([]); // If exams was null initially, and we found duplicates of nothing, set to empty.
-        }
-      } else { // No exams found in localProcessedExams from the current file/class code search
-        if (currentExamList.length === 0) { // No previous exams and no new ones
-          toastConfig = {
-            title: "No Results",
-            description: "No matching exams found for your current search. Check class codes and ensure your file has the required columns with correctly formatted data."
-          };
-          setExams([]); // Ensure exams state is an empty array
-        } else { // Had previous exams, but this search yielded nothing new
-          toastConfig = {
-            title: "No New Exams Found",
-            description: "No additional matching exams found for the current search. Your existing list remains."
-          };
-          // No need to call setExams, list remains as is, exams is not null here.
+        if (uniqueNewExamsFromThisSearch.length > 0) {
+          setExams(prevExams => [...prevExams, ...uniqueNewExamsFromThisSearch]);
+          newExamsCount = uniqueNewExamsFromThisSearch.length;
         }
       }
+
+      // Determine toast message based on counts
+      if (newExamsCount > 0) {
+        toastConfig = { title: "Success", description: `${newExamsCount} new exam(s) added to your list.` };
+      } else if (localProcessedExams.length > 0 && duplicateCount === localProcessedExams.length) {
+        // All exams found in this search were duplicates of existing ones
+        toastConfig = { title: "Info", description: `The ${localProcessedExams.length} exam(s) found from this search are already in your list.` };
+      } else if (localProcessedExams.length === 0) {
+        // No exams matching the current class codes were found in the file
+         if (exams.length === 0) { // And no previous exams in the list
+            toastConfig = {
+                title: "No Results",
+                description: "No matching exams found for your current search. Check class codes and ensure your file has the required columns with correctly formatted data."
+            };
+         } else { // Had previous exams, but this search yielded nothing
+            toastConfig = {
+                title: "No New Exams Found",
+                description: "No additional matching exams found for the current search. Your existing list remains."
+            };
+         }
+      }
+
 
       if (toastConfig) {
         toast(toastConfig);
@@ -274,7 +296,7 @@ export default function ExamTickerPage() {
         </div>
       )}
 
-      {!isLoading && exams && exams.length === 0 && !error && (
+      {!isLoading && exams.length === 0 && !error && (
         <Card className="w-full max-w-xl mt-8 p-6 rounded-lg bg-secondary/30">
            <CardHeader className="flex flex-row items-center space-x-3 p-0 mb-2">
             <Info className="h-6 w-6 text-primary" />
