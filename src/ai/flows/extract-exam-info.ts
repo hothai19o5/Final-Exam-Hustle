@@ -1,4 +1,3 @@
-// This is an auto-generated file from Firebase Studio.
 
 'use server';
 
@@ -12,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { format } from 'date-fns';
 
 const ExtractExamInfoInputSchema = z.object({
   pdfDataUri: z
@@ -28,7 +28,7 @@ export type ExtractExamInfoInput = z.infer<typeof ExtractExamInfoInputSchema>;
 const ExamEntrySchema = z.object({
   courseName: z.string().describe('The name of the course.'),
   examDate: z.string().describe('The date of the exam in DD.MM.YYYY format.'),
-  daysRemaining: z.number().describe('The number of days remaining until the exam.'),
+  daysRemaining: z.number().describe('The number of days remaining until the exam. Should be 0 if the exam date is in the past.'),
 });
 
 const ExtractExamInfoOutputSchema = z.array(ExamEntrySchema).describe('A list of exam entries extracted from the PDF.');
@@ -41,7 +41,7 @@ export async function extractExamInfo(input: ExtractExamInfoInput): Promise<Extr
 const extractExamDetails = ai.defineTool(
   {
     name: 'extractExamDetails',
-    description: 'Extracts exam details (course name, exam date) from a PDF document for a given class code.',
+    description: 'Extracts exam details (course name, exam date) from a PDF document for a given class code. The tool expects exam dates to be in DD.MM.YYYY format from the PDF or should convert them to this format.',
     inputSchema: z.object({
       pdfDataUri: z
         .string()
@@ -50,35 +50,41 @@ const extractExamDetails = ai.defineTool(
         ),
       classCode: z.string().describe('The class code to search for in the PDF.'),
     }),
-    outputSchema: z.array(z.string()),
+    outputSchema: z.array(z.string().describe("A string containing course name and exam date, e.g., 'Course Name - DD.MM.YYYY'")),
   },
-  async (input) => {
-    // This placeholder needs to be implemented to extract exam details from the PDF.
-    // Using a real PDF parsing library (like pdf-parse) is essential here.
-    // The return type must be an array of strings containing the extracted exam information
-    // in the form of course name and exam date.
-    // For now, returning a placeholder based on classCode to allow flow to proceed.
-    // Example: if classCode is "CS101", it could return ["Introduction to CS - 15.07.2025"]
-    // The actual implementation would involve PDF parsing logic.
-    console.log(`Mock extractExamDetails called for classCode: ${input.classCode}. PDF parsing not implemented.`);
+  async (toolInput) => {
+    console.log(`Mock extractExamDetails called for classCode: ${toolInput.classCode}. PDF parsing not implemented.`);
     // This mock response should be tailored if specific test data is available or needed.
-    // For example, if testing the flow's ability to handle multiple results for a class code,
-    // or different date formats if the prompt was more general.
-    // Given the prompt expects DD.MM.YYYY, we'll mock that.
-    // To make it somewhat dynamic for testing, let's imagine a few predefined codes.
-    if (input.classCode === "157324") {
+    // The actual implementation would involve PDF parsing logic.
+    if (toolInput.classCode === "157324") {
+        // Simulate finding an exam for CS101
         return ["Introduction to Programming - 20.06.2025"];
     }
-    if (input.classCode === "158785") {
+    if (toolInput.classCode === "158785") {
+        // Simulate finding an exam for MA201
         return ["Data Structures and Algorithms - 25.06.2025"];
+    }
+    if (toolInput.classCode === "PHYS202") {
+        // Simulate finding a past exam for testing daysRemaining = 0
+        return ["Modern Physics - 10.03.2024"];
+    }
+    if (toolInput.classCode === "MULTI101") {
+        // Simulate finding multiple exams for one code
+        return ["Multi-Course Part 1 - 01.12.2025", "Multi-Course Part 2 - 05.12.2025"];
     }
     return []; // Default to no results if class code doesn't match mock.
   }
 );
 
+// Schema for the internal input of the prompt, extending the flow's input
+const PromptInternalInputSchema = ExtractExamInfoInputSchema.extend({
+  currentDateFormatted: z.string().describe("Today's date, pre-formatted as DD.MM.YYYY."),
+});
+
+
 const prompt = ai.definePrompt({
   name: 'extractExamInfoPrompt',
-  input: {schema: ExtractExamInfoInputSchema},
+  input: {schema: PromptInternalInputSchema},
   output: {schema: ExtractExamInfoOutputSchema},
   tools: [extractExamDetails],
   prompt: `You are an expert at extracting exam information from PDF documents.
@@ -87,20 +93,20 @@ const prompt = ai.definePrompt({
   Your task is to extract the exam information (course name, exam date) for each of the provided class codes from the PDF.
 
   Here are the class codes: {{{classCodes}}}
-
   Here is the PDF document: {{media url=pdfDataUri}}
 
-  For each class code, use the 'extractExamDetails' tool to extract the exam information from the PDF.
-  The tool will return an array of strings, where each string contains the course name and exam date. For example: ["Course Name - DD.MM.YYYY"].
+  For each class code found in the 'classCodes' string, use the 'extractExamDetails' tool to extract the exam information from the PDF.
+  The tool will return an array of strings, where each string contains the course name and exam date, formatted as "Course Name - DD.MM.YYYY".
   You must parse this string to get the course name and exam date.
 
-  The exam date should be in DD.MM.YYYY format.
+  The exam date extracted from the tool must be in DD.MM.YYYY format.
 
-  Calculate the number of days remaining until each exam, relative to today's date ({{@global.timestampISO}}).
-  Today's date is {{dateFormat @global.timestampISO format="DD.MM.YYYY"}}.
+  Calculate the number of days remaining until each exam. Consider today's date to be {{{currentDateFormatted}}}.
+  If an exam date is in the past relative to {{{currentDateFormatted}}}, the 'daysRemaining' should be 0.
+  Ensure the 'daysRemaining' field is a number.
 
   Return the extracted exam information as a JSON array of objects, where each object contains the course name, exam date, and the number of days remaining until the exam.
-  Make sure that the 'daysRemaining' field is a number. Ensure the courseName and examDate fields are accurately populated from the tool's output.
+  Ensure the courseName and examDate fields are accurately populated from the tool's output.
 
   Example of expected output format:
   [
@@ -124,15 +130,20 @@ const prompt = ai.definePrompt({
 const extractExamInfoFlow = ai.defineFlow(
   {
     name: 'extractExamInfoFlow',
-    inputSchema: ExtractExamInfoInputSchema,
+    inputSchema: ExtractExamInfoInputSchema, // This is the external input schema for the flow
     outputSchema: ExtractExamInfoOutputSchema,
   },
-  async input => {
-    // The prompt is designed to iterate through class codes and use the tool.
-    // The main logic for calling the tool and processing its output is handled by the LLM based on the prompt instructions.
-    // The LLM will call extractExamDetails for each class code derived from input.classCodes.
-    // The LLM will then format the output as specified.
-    const {output} = await prompt(input);
+  async (flowInput: ExtractExamInfoInput) => {
+    const currentDateFormatted = format(new Date(), 'dd.MM.yyyy');
+    
+    // Prepare the input for the prompt, including the pre-formatted date
+    const promptInput = {
+      ...flowInput,
+      currentDateFormatted,
+    };
+
+    const {output} = await prompt(promptInput);
     return output!;
   }
 );
+
