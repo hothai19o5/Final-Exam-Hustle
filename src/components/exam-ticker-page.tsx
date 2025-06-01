@@ -262,7 +262,7 @@ export default function ExamTickerPage() {
           <h2 className="text-3xl font-semibold mb-6 text-center text-primary-foreground">Your Upcoming Exams</h2>
           <div className="space-y-6">
             {exams.map((exam) => (
-              <ExamCard key={`${exam.classCode}-${exam.courseName}-${exam.examDate}`} exam={exam} />
+              <ExamCard key={`${exam.classCode}-${exam.courseName}-${exam.examDate}-${exam.group}-${exam.examTeam}-${exam.examRoom}`} exam={exam} />
             ))}
           </div>
         </section>
@@ -270,5 +270,3 @@ export default function ExamTickerPage() {
     </div>
   );
 }
-
-    
