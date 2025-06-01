@@ -1,8 +1,9 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, BookOpen, Clock } from "lucide-react";
+import { CalendarDays, BookOpen, Clock, Hash, Users, Users2, MapPin } from "lucide-react";
 import { useState, useEffect } from 'react';
 import { differenceInDays, parse as parseDateFns } from 'date-fns';
 import type { ClientExamEntry } from './exam-ticker-page'; // Import type from parent
@@ -67,7 +68,41 @@ export function ExamCard({ exam }: ExamCardProps) {
         {daysLeft > 0 && daysLeft <= 7 && (
           <Badge variant="secondary" className="mt-4">Approaching Soon!</Badge>
         )}
+
+        <div className="mt-6 pt-4 border-t border-border/50">
+          <h4 className="text-md font-medium mb-3 text-foreground/80">Exam Details:</h4>
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-center">
+              <Hash className="mr-2 h-4 w-4 text-primary shrink-0" />
+              <span className="text-muted-foreground">Class Code: </span>
+              <span className="font-medium text-foreground/90 ml-1">{exam.classCode}</span>
+            </li>
+            {exam.group && exam.group !== 'N/A' && (
+              <li className="flex items-center">
+                <Users className="mr-2 h-4 w-4 text-primary shrink-0" />
+                <span className="text-muted-foreground">Group: </span>
+                <span className="font-medium text-foreground/90 ml-1">{exam.group}</span>
+              </li>
+            )}
+            {exam.examTeam && exam.examTeam !== 'N/A' && (
+              <li className="flex items-center">
+                <Users2 className="mr-2 h-4 w-4 text-primary shrink-0" />
+                <span className="text-muted-foreground">Exam Team: </span>
+                <span className="font-medium text-foreground/90 ml-1">{exam.examTeam}</span>
+              </li>
+            )}
+            {exam.examRoom && exam.examRoom !== 'N/A' && (
+              <li className="flex items-center">
+                <MapPin className="mr-2 h-4 w-4 text-primary shrink-0" />
+                <span className="text-muted-foreground">Exam Room: </span>
+                <span className="font-medium text-foreground/90 ml-1">{exam.examRoom}</span>
+              </li>
+            )}
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );
 }
+
+    

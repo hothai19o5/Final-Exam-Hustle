@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
@@ -9,13 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ExamCard } from "@/components/exam-card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, ListChecks, AlertCircle, Loader2, Info } from "lucide-react";
+import { UploadCloud, ListChecks, AlertCircle, Loader2, Info, Users, Users2, MapPin, Hash } from "lucide-react";
 
 // Define the type for exam entries processed on the client
 export type ClientExamEntry = {
   courseName: string;
   examDate: string; // "dd.MM.yyyy"
-  classCode: string; // Keep class code for keying or potential future use
+  classCode: string; 
+  group: string;
+  examTeam: string;
+  examRoom: string;
 };
 
 export default function ExamTickerPage() {
@@ -32,7 +36,6 @@ export default function ExamTickerPage() {
       const validTypes = [
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
         "text/csv", // .csv
-        // Add older Excel format if needed, though .xlsx is standard
         "application/vnd.ms-excel" // .xls
       ];
       if (!validTypes.includes(file.type) && !file.name.endsWith('.csv') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
@@ -82,10 +85,17 @@ export default function ExamTickerPage() {
           const getClassCode = (r: any) => r["Mã lớp"] || r["mã lớp"] || r["Class code"] || r["class code"];
           const getCourseName = (r: any) => r["Tên học phần"] || r["tên học phần"] || r["Course name"] || r["course name"];
           const getExamDate = (r: any) => r["Ngày thi"] || r["ngày thi"] || r["Exam date"] || r["exam date"];
+          const getGroup = (r: any) => r["Ca thi"] || r["ca thi"] || r["Exam Group"] || r["exam group"] || r["Group"] || r["group"];
+          const getExamTeam = (r: any) => r["Tổ thi"] || r["tổ thi"] || r["Exam Team"] || r["exam team"];
+          const getExamRoom = (r: any) => r["Phòng thi"] || r["phòng thi"] || r["Exam Room"] || r["exam room"];
+
 
           const classCodeValue = getClassCode(row);
           const courseNameValue = getCourseName(row);
           const examDateValue = getExamDate(row);
+          const groupValue = getGroup(row);
+          const examTeamValue = getExamTeam(row);
+          const examRoomValue = getExamRoom(row);
 
           const classCode = classCodeValue?.toString().trim().toLowerCase();
           const courseName = courseNameValue?.toString().trim();
@@ -112,9 +122,20 @@ export default function ExamTickerPage() {
                 examDateStr = ""; 
             }
           }
+          
+          const group = groupValue?.toString().trim() || 'N/A';
+          const examTeam = examTeamValue?.toString().trim() || 'N/A';
+          const examRoom = examRoomValue?.toString().trim() || 'N/A';
 
           if (classCode && courseName && examDateStr && inputClassCodes.includes(classCode)) {
-            processedExams.push({ classCode, courseName, examDate: examDateStr });
+            processedExams.push({ 
+              classCode, 
+              courseName, 
+              examDate: examDateStr,
+              group,
+              examTeam,
+              examRoom
+            });
           } else if (classCode && courseName && inputClassCodes.includes(classCode) && !examDateStr) {
              console.warn(`Row ${rowIndex + 2}: Skipping exam for class ${classCode}, course ${courseName} due to missing or unparsable date. Found: '${examDateValue}'`);
           }
@@ -125,12 +146,15 @@ export default function ExamTickerPage() {
           toast({ title: "Success", description: `${processedExams.length} exam(s) found.` });
         } else {
           setExams([]);
-          toast({ title: "No Results", description: "No matching exams found. Check class codes and ensure your file has 'Mã lớp', 'Tên học phần', and 'Ngày thi' columns." });
+          toast({ 
+            title: "No Results", 
+            description: "No matching exams found. Check class codes and ensure your file has 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns with correctly formatted data." 
+          });
         }
 
       } catch (parseError: any) {
         console.error("Parsing failed:", parseError);
-        const userMessage = "Failed to parse the file. Ensure it's a valid Excel/CSV and contains 'Mã lớp', 'Tên học phần', and 'Ngày thi' columns.";
+        const userMessage = "Failed to parse the file. Ensure it's a valid Excel/CSV and contains 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns.";
         setError(userMessage);
         toast({ variant: "destructive", title: "Parsing Error", description: userMessage });
       } finally {
@@ -228,7 +252,7 @@ export default function ExamTickerPage() {
             <CardTitle className="text-primary text-xl">No Exams Found</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <p className="text-muted-foreground">No exams matching your class codes were found. Please check your class codes or ensure your file has 'Mã lớp', 'Tên học phần', and 'Ngày thi' columns with correctly formatted dates (dd.MM.yyyy).</p>
+            <p className="text-muted-foreground">No exams matching your class codes were found. Please check your class codes or ensure your file has 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns with correctly formatted dates (dd.MM.yyyy).</p>
           </CardContent>
         </Card>
       )}
@@ -246,3 +270,5 @@ export default function ExamTickerPage() {
     </div>
   );
 }
+
+    
