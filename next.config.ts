@@ -1,7 +1,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export', // For static site generation
+  // output: 'export', // For static site generation
+  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,7 +10,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true, // Required for static export with next/image
+    // unoptimized: true, // Required for static export with next/image
     remotePatterns: [
       {
         protocol: 'https',

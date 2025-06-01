@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ExamCard } from "@/components/exam-card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, ListChecks, AlertCircle, Loader2, Info, FileText, Database } from "lucide-react";
+import { UploadCloud, ListChecks, AlertCircle, Loader2, Info, FileText, Database, Github } from "lucide-react";
 
 export type ClientExamEntry = {
   id: string;
@@ -44,13 +44,13 @@ export default function ExamTickerPage() {
     const localProcessedExams: ClientExamEntry[] = [];
 
     jsonData.forEach((row, rowIndex) => {
-      const getClassCode = (r: any) => r["Mã lớp"];
-      const getCourseName = (r: any) => r["Tên học phần"];
-      const getExamDate = (r: any) => r["Ngày thi"];
-      const getGroup = (r: any) => r["Nhóm"];
-      const getExamTeam = (r: any) => r["Kíp thi"];
-      const getExamRoom = (r: any) => r["Phòng thi"];
-      const getExamCode = (r: any) => r["Mã lớp thi"];
+      const getClassCode = (r: any) => r["Mã lớp"] || r["Mã Lớp"] || r["mã lớp"] || r["Class Code"];
+      const getCourseName = (r: any) => r["Tên học phần"] || r["Tên Học Phần"] || r["tên học phần"] || r["Course Name"];
+      const getExamDate = (r: any) => r["Ngày thi"] || r["Ngày Thi"] || r["ngày thi"] || r["Exam Date"];
+      const getGroup = (r: any) => r["Nhóm"] || r["nhóm"] || r["Group"] || r["Ca thi"];
+      const getExamTeam = (r: any) => r["Kíp thi"] || r["Kíp Thi"] || r["kíp thi"] || r["Tổ thi"] || r["Exam Team"];
+      const getExamRoom = (r: any) => r["Phòng thi"] || r["Phòng Thi"] || r["phòng thi"] || r["Exam Room"];
+      const getExamCode = (r: any) => r["Mã lớp thi"] || r["Mã Lớp Thi"] || r["mã lớp thi"] || r["Exam Class Code"];
 
       const classCodeValue = getClassCode(row);
       const courseNameValue = getCourseName(row);
@@ -91,7 +91,7 @@ export default function ExamTickerPage() {
       const examTeam = examTeamValue?.toString().trim() || 'N/A';
       const examRoom = examRoomValue?.toString().trim() || 'N/A';
 
-      if (classCode && courseName && examDateStr) { // We add all valid rows, filtering happens later
+      if (classCode && courseName && examDateStr) {
         localProcessedExams.push({
           id: `${classCode}-${courseName}-${examDateStr}-${group}-${examTeam}-${examRoom}-${examCode}-${sourceFileName}-${rowIndex}`,
           classCode,
@@ -127,7 +127,6 @@ export default function ExamTickerPage() {
       } catch (err: any) {
         console.warn("Failed to load default schedule:", err.message);
         setActiveFileSource(null);
-        // Do not set a global error, user can still upload their file
       } finally {
         setIsDefaultLoading(false);
       }
@@ -152,7 +151,7 @@ export default function ExamTickerPage() {
           description: "Please upload an Excel (.xlsx, .xls) or CSV (.csv) file.",
         });
         setUserExcelFile(null);
-        if(event.target) event.target.value = ""; // Reset file input
+        if(event.target) event.target.value = ""; 
         return;
       }
       setUserExcelFile(file);
@@ -161,22 +160,24 @@ export default function ExamTickerPage() {
       try {
         const reader = new FileReader();
         reader.onload = (e) => {
+          let toastToDispatch: Parameters<typeof toast>[0] | null = null;
           if (e.target?.result) {
             const allParsedExams = parseExcelData(e.target.result as ArrayBuffer, file.name);
             setParsedExamsFromActiveFile(allParsedExams);
             setActiveFileSource('user');
-            setDisplayedExams([]); // Reset displayed exams when new file is uploaded
-            toast({ title: "File Loaded", description: `Successfully parsed "${file.name}". Enter class codes to search.` });
+            setDisplayedExams([]); 
+            toastToDispatch = { title: "File Loaded", description: `Successfully parsed "${file.name}". Enter class codes to search.` };
           } else {
             throw new Error("Failed to read file data.");
           }
           setIsLoading(false);
+          if (toastToDispatch) toast(toastToDispatch);
         };
         reader.onerror = () => {
           setError(`Failed to read the uploaded file: ${file.name}.`);
           toast({ variant: "destructive", title: "File Read Error", description: "Could not read the file." });
           setIsLoading(false);
-          setActiveFileSource(null); // Revert to no active source if user file fails
+          setActiveFileSource(null);
           setParsedExamsFromActiveFile(null);
         };
         reader.readAsArrayBuffer(file);
@@ -187,10 +188,9 @@ export default function ExamTickerPage() {
         setActiveFileSource(null);
         setParsedExamsFromActiveFile(null);
       }
-    } else { // If user deselects file
+    } else { 
       setUserExcelFile(null);
-      // If a default schedule was loaded, revert to it
-      if (activeFileSource === 'user') { // only if user file was active
+      if (activeFileSource === 'user') {
         const loadDefaultAgain = async () => {
             setIsDefaultLoading(true);
             try {
@@ -200,7 +200,7 @@ export default function ExamTickerPage() {
                 const defaultExamsData = parseExcelData(arrayBuffer, 'default_schedule.xlsx');
                 setParsedExamsFromActiveFile(defaultExamsData);
                 setActiveFileSource('default');
-                setDisplayedExams([]);
+                setDisplayedExams([]); // Clear exams from the previous user file
                 toast({ title: "Switched to Default Schedule", description: "User file removed. Default schedule is now active." });
             } catch (err) {
                 setParsedExamsFromActiveFile(null);
@@ -229,12 +229,12 @@ export default function ExamTickerPage() {
       return;
     }
 
-    setIsLoading(true); // For search processing
+    setIsLoading(true); 
     setError(null);
 
     const inputClassCodesArray = classCodes.split(',').map(code => code.trim().toLowerCase()).filter(code => code);
     const localFoundExamsForThisSearch: ClientExamEntry[] = [];
-    const foundClassCodesInThisSearch = new Set<string>(); // To track first match for each input class code
+    const foundClassCodesInThisSearch = new Set<string>(); 
 
     if (parsedExamsFromActiveFile) {
         for (const exam of parsedExamsFromActiveFile) {
@@ -256,7 +256,7 @@ export default function ExamTickerPage() {
     } else {
        toastConfig = {
         title: "No New Results",
-        description: "No new exams matching your criteria found in the current schedule. Check class codes and file content (columns: 'Mã lớp', 'Tên học phần', 'Ngày thi', etc.)."
+        description: "No new exams matching your criteria found in the current schedule. Check class codes and file content (columns: 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Nhóm', 'Kíp thi', 'Phòng thi', etc.)."
       };
     }
 
@@ -275,7 +275,7 @@ export default function ExamTickerPage() {
     try {
       return parseDateFns(dateStr, 'dd.MM.yyyy', new Date());
     } catch {
-      return new Date(0);
+      return new Date(0); 
     }
   };
 
@@ -295,7 +295,7 @@ export default function ExamTickerPage() {
     if (isDefaultLoading) {
       return "Loading default schedule...";
     }
-    return "No exam schedule loaded. Upload a file or try reloading if default schedule failed.";
+    return "No exam schedule loaded. Upload a file or try reloading if the default schedule failed to load.";
   };
 
 
@@ -356,7 +356,7 @@ export default function ExamTickerPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {userExcelFile ? 'Loading File...' : 'Searching...'}
+                  {(userExcelFile && activeFileSource === 'user') || (!userExcelFile && isDefaultLoading && activeFileSource !== 'user') ? 'Loading File...' : 'Searching...'}
                 </>
               ) : (
                 "Add"
@@ -378,7 +378,7 @@ export default function ExamTickerPage() {
         </Card>
       )}
 
-      {isLoading && !error && !userExcelFile && ( // Show generic loading for search or default file load
+      {isLoading && !error && !userExcelFile && ( 
          <div className="mt-8 text-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
             <p className="mt-4 text-lg text-muted-foreground">
@@ -396,7 +396,7 @@ export default function ExamTickerPage() {
           <CardContent className="p-0">
             <p className="text-muted-foreground">
                 {activeFileSource ? 'No exams found matching your search criteria in the current schedule.' : isDefaultLoading ? 'Waiting for default schedule to load or for you to upload a file.' : "Upload your exam schedule or try reloading if the default schedule failed to load."}
-                {' '}Ensure your file has 'Mã lớp', 'Tên học phần', 'Ngày thi', etc., or check your search terms.
+                {' '}Ensure your file has 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Nhóm', 'Kíp thi', 'Phòng thi', etc., or check your search terms.
             </p>
           </CardContent>
         </Card>
@@ -412,7 +412,21 @@ export default function ExamTickerPage() {
           </div>
         </section>
       )}
+
+      <footer className="w-full max-w-5xl mt-12 py-8 border-t border-border/50 text-center text-muted-foreground">
+        <p className="mb-2">
+          Created by Ho Xuan Thai
+        </p>
+        <a
+          href="https://github.com/hothai19o5"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center text-primary hover:text-primary/80 transition-colors"
+        >
+          <Github className="mr-2 h-5 w-5" />
+          View on GitHub
+        </a>
+      </footer>
     </div>
   );
 }
-
