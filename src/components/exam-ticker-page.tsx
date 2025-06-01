@@ -10,13 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ExamCard } from "@/components/exam-card";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, ListChecks, AlertCircle, Loader2, Info, Users, Users2, MapPin, Hash } from "lucide-react";
+import { UploadCloud, ListChecks, AlertCircle, Loader2, Info } from "lucide-react";
 
 // Define the type for exam entries processed on the client
 export type ClientExamEntry = {
+  id: string; // Unique ID for React key
   courseName: string;
   examDate: string; // "dd.MM.yyyy"
-  classCode: string; 
+  classCode: string;
   group: string;
   examTeam: string;
   examRoom: string;
@@ -45,7 +46,7 @@ export default function ExamTickerPage() {
           description: "Please upload an Excel (.xlsx, .xls) or CSV (.csv) file.",
         });
         setExcelFile(null);
-        if(event.target) event.target.value = ""; 
+        if(event.target) event.target.value = "";
         return;
       }
       setExcelFile(file);
@@ -119,18 +120,19 @@ export default function ExamTickerPage() {
                 examDateStr = `${d}.${m}.${y}`;
             }
             if (!/^\d{2}\.\d{2}\.\d{4}$/.test(examDateStr)) {
-                examDateStr = ""; 
+                examDateStr = "";
             }
           }
-          
+
           const group = groupValue?.toString().trim() || 'N/A';
           const examTeam = examTeamValue?.toString().trim() || 'N/A';
           const examRoom = examRoomValue?.toString().trim() || 'N/A';
 
           if (classCode && courseName && examDateStr && inputClassCodes.includes(classCode)) {
-            processedExams.push({ 
-              classCode, 
-              courseName, 
+            processedExams.push({
+              id: `${classCode}-${courseName}-${examDateStr}-${group}-${examTeam}-${examRoom}-${rowIndex}`, // Unique ID including rowIndex
+              classCode,
+              courseName,
               examDate: examDateStr,
               group,
               examTeam,
@@ -146,9 +148,9 @@ export default function ExamTickerPage() {
           toast({ title: "Success", description: `${processedExams.length} exam(s) found.` });
         } else {
           setExams([]);
-          toast({ 
-            title: "No Results", 
-            description: "No matching exams found. Check class codes and ensure your file has 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns with correctly formatted data." 
+          toast({
+            title: "No Results",
+            description: "No matching exams found. Check class codes and ensure your file has 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', and 'Phòng thi' columns with correctly formatted data."
           });
         }
 
@@ -189,12 +191,12 @@ export default function ExamTickerPage() {
                 <UploadCloud className="mr-2 h-5 w-5 text-primary" />
                 Exam Schedule (Excel/CSV)
               </Label>
-              <Input 
-                id="file-upload" 
-                type="file" 
+              <Input
+                id="file-upload"
+                type="file"
                 accept=".xlsx,.xls,.csv"
-                onChange={handleFileChange} 
-                required 
+                onChange={handleFileChange}
+                required
                 className="file:text-primary file:font-medium hover:file:bg-primary/10"
               />
             </div>
@@ -203,13 +205,13 @@ export default function ExamTickerPage() {
                 <ListChecks className="mr-2 h-5 w-5 text-primary" />
                 Class Codes (comma-separated)
               </Label>
-              <Input 
-                id="class-codes" 
-                type="text" 
-                value={classCodes} 
-                onChange={(e) => setClassCodes(e.target.value)} 
-                placeholder="e.g., 157324, 158785" 
-                required 
+              <Input
+                id="class-codes"
+                type="text"
+                value={classCodes}
+                onChange={(e) => setClassCodes(e.target.value)}
+                placeholder="e.g., 157324, 158785"
+                required
               />
             </div>
             <Button type="submit" className="w-full text-lg py-3 bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading}>
@@ -262,7 +264,7 @@ export default function ExamTickerPage() {
           <h2 className="text-3xl font-semibold mb-6 text-center text-primary-foreground">Your Upcoming Exams</h2>
           <div className="space-y-6">
             {exams.map((exam) => (
-              <ExamCard key={`${exam.classCode}-${exam.courseName}-${exam.examDate}-${exam.group}-${exam.examTeam}-${exam.examRoom}`} exam={exam} />
+              <ExamCard key={exam.id} exam={exam} />
             ))}
           </div>
         </section>
