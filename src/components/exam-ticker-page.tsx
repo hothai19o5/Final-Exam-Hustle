@@ -66,12 +66,12 @@ export default function ExamTickerPage() {
 
     setIsLoading(true);
     setError(null);
-    // DO NOT setExams(null) here to preserve old results
 
     const reader = new FileReader();
     reader.onload = (e) => {
       let localProcessedExams: ClientExamEntry[] = [];
       let parseErrorOccurred = false;
+      let toastConfig: Parameters<typeof toast>[0] | null = null;
 
       try {
         const data = e.target?.result;
@@ -150,46 +150,44 @@ export default function ExamTickerPage() {
         setError(userMessage);
         toast({ variant: "destructive", title: "Parsing Error", description: userMessage });
         parseErrorOccurred = true;
-      } finally {
-        // This 'finally' is for the try/catch around XLSX parsing.
-        // isLoading will be set to false after state updates.
       }
 
-      setIsLoading(false); // Set loading to false after parsing and before state updates
+      setIsLoading(false);
 
       if (parseErrorOccurred) {
         return;
       }
 
+      const currentExamList = exams || [];
       if (localProcessedExams.length > 0) {
-        setExams(prevExamsList => {
-          const currentExams = prevExamsList || [];
-          const existingExamIds = new Set(currentExams.map(ex => ex.id));
-          const uniqueNewExams = localProcessedExams.filter(ne => !existingExamIds.has(ne.id));
+        const existingExamIds = new Set(currentExamList.map(ex => ex.id));
+        const uniqueNewExams = localProcessedExams.filter(ne => !existingExamIds.has(ne.id));
 
-          if (uniqueNewExams.length > 0) {
-            toast({ title: "Success", description: `${uniqueNewExams.length} new exam(s) added to your list.` });
-          } else if (localProcessedExams.length > 0) { // Exams were found by parser, but all were duplicates already in list
-            toast({ title: "Info", description: `The ${localProcessedExams.length} exam(s) found are already in your list.` });
-          }
-          return [...currentExams, ...uniqueNewExams];
-        });
+        if (uniqueNewExams.length > 0) {
+          setExams([...currentExamList, ...uniqueNewExams]);
+          toastConfig = { title: "Success", description: `${uniqueNewExams.length} new exam(s) added to your list.` };
+        } else { // Exams were found by parser, but all were duplicates already in list
+          toastConfig = { title: "Info", description: `The ${localProcessedExams.length} exam(s) found are already in your list.` };
+          if (exams === null) setExams([]); // If exams was null initially, and we found duplicates of nothing, set to empty.
+        }
       } else { // No exams found in localProcessedExams from the current file/class code search
-        setExams(prevExamsList => {
-          if (!prevExamsList || prevExamsList.length === 0) { // No previous exams and no new ones
-            toast({
-              title: "No Results",
-              description: "No matching exams found for your current search. Check class codes and ensure your file has the required columns with correctly formatted data."
-            });
-            return []; // Ensure exams state is an empty array to trigger "No exams found" message
-          }
-          // Had previous exams, but this search yielded nothing new
-          toast({
+        if (currentExamList.length === 0) { // No previous exams and no new ones
+          toastConfig = {
+            title: "No Results",
+            description: "No matching exams found for your current search. Check class codes and ensure your file has the required columns with correctly formatted data."
+          };
+          setExams([]); // Ensure exams state is an empty array
+        } else { // Had previous exams, but this search yielded nothing new
+          toastConfig = {
             title: "No New Exams Found",
             description: "No additional matching exams found for the current search. Your existing list remains."
-          });
-          return prevExamsList; // Keep existing exams
-        });
+          };
+          // No need to call setExams, list remains as is, exams is not null here.
+        }
+      }
+
+      if (toastConfig) {
+        toast(toastConfig);
       }
     };
 
@@ -301,3 +299,4 @@ export default function ExamTickerPage() {
     </div>
   );
 }
+
