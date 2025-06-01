@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ExamCard } from "@/components/exam-card";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, ListChecks, AlertCircle, Loader2, Info } from "lucide-react";
-import Image from 'next/image';
 
 export type ClientExamEntry = {
   id: string;
@@ -159,17 +158,19 @@ export default function ExamTickerPage() {
       }
 
       let finalNewExamsCount = 0;
+      let updatedExamsList = [...exams]; // Start with current exams
 
       if (!parseErrorOccurred && localProcessedExams.length > 0) {
         const currentExamIds = new Set(exams.map(ex => ex.id));
         const uniqueNewExamsFromThisSearch = localProcessedExams.filter(ne => !currentExamIds.has(ne.id));
 
         if (uniqueNewExamsFromThisSearch.length > 0) {
-          setExams(prevExams => [...prevExams, ...uniqueNewExamsFromThisSearch]);
+          updatedExamsList = [...exams, ...uniqueNewExamsFromThisSearch];
           finalNewExamsCount = uniqueNewExamsFromThisSearch.length;
         }
       }
-
+      
+      setExams(updatedExamsList);
       setIsLoading(false);
 
       if (parseErrorOccurred) {
@@ -178,7 +179,7 @@ export default function ExamTickerPage() {
         toastConfig = { title: "Success", description: `${finalNewExamsCount} new exam(s) added.` };
       } else if (localProcessedExams.length > 0 && finalNewExamsCount === 0) {
         toastConfig = { title: "Info", description: `The exam(s) found are already in your list.` };
-      } else if (localProcessedExams.length === 0) {
+      } else if (localProcessedExams.length === 0 && !parseErrorOccurred) {
         toastConfig = {
             title: "No Results",
             description: "No matching exams found. Check class codes and file content (columns: 'Mã lớp', 'Tên học phần', 'Ngày thi', 'Ca thi', 'Tổ thi', 'Phòng thi')."
@@ -219,8 +220,7 @@ export default function ExamTickerPage() {
 
   return (
     <div className="container mx-auto flex flex-col items-center py-8 px-4 min-h-screen">
-      <header className="mb-10 text-center flex flex-col items-center">
-        <Image src="/logo.png" alt="University Logo" width={100} height={150} className="mb-4" />
+      <header className="mb-10 text-center">
         <h1 className="text-4xl sm:text-5xl font-bold text-primary-foreground drop-shadow-sm">Final Exam Hustle</h1>
         <p className="text-muted-foreground mt-2 text-lg">Upload your schedule and find your exams!</p>
       </header>
@@ -318,4 +318,3 @@ export default function ExamTickerPage() {
     </div>
   );
 }
-
