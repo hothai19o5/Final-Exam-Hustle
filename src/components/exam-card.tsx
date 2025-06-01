@@ -3,16 +3,18 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, BookOpen, Clock, Hash, Users, Users2, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarDays, BookOpen, Clock, Hash, Users, Users2, MapPin, X } from "lucide-react";
 import { useState, useEffect } from 'react';
 import { differenceInDays, parse as parseDateFns } from 'date-fns';
-import type { ClientExamEntry } from './exam-ticker-page'; // Import type from parent
+import type { ClientExamEntry } from './exam-ticker-page';
 
 interface ExamCardProps {
   exam: ClientExamEntry;
+  onDelete: (id: string) => void;
 }
 
-export function ExamCard({ exam }: ExamCardProps) {
+export function ExamCard({ exam, onDelete }: ExamCardProps) {
   const [daysLeft, setDaysLeft] = useState<number>(0);
 
   useEffect(() => {
@@ -23,29 +25,38 @@ export function ExamCard({ exam }: ExamCardProps) {
         try {
           const examDateObj = parseDateFns(exam.examDate, 'dd.MM.yyyy', new Date());
           const today = new Date();
-          today.setHours(0, 0, 0, 0); 
+          today.setHours(0, 0, 0, 0);
           const diff = differenceInDays(examDateObj, today);
           setDaysLeft(diff >= 0 ? diff : 0);
         } catch (e) {
           console.error("Error parsing date in ExamCard:", exam.examDate, e);
-          setDaysLeft(0); 
+          setDaysLeft(0);
         }
       } else {
          setDaysLeft(0);
       }
     };
 
-    calculateDaysLeft(); 
-    
-    intervalId = setInterval(calculateDaysLeft, 1000 * 60 * 60 * 24); 
+    calculateDaysLeft();
 
-    return () => clearInterval(intervalId); 
+    intervalId = setInterval(calculateDaysLeft, 1000 * 60 * 60 * 24);
+
+    return () => clearInterval(intervalId);
   }, [exam.examDate]);
 
   return (
-    <Card className="w-full shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="w-full shadow-lg hover:shadow-xl transition-shadow duration-300 relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive"
+        onClick={() => onDelete(exam.id)}
+        aria-label="Delete exam"
+      >
+        <X className="h-5 w-5" />
+      </Button>
       <CardHeader>
-        <CardTitle className="flex items-center text-xl font-semibold">
+        <CardTitle className="flex items-center text-xl font-semibold pr-8">
           <BookOpen className="mr-3 h-6 w-6 text-primary" />
           {exam.courseName}
         </CardTitle>
@@ -104,5 +115,3 @@ export function ExamCard({ exam }: ExamCardProps) {
     </Card>
   );
 }
-
-    
