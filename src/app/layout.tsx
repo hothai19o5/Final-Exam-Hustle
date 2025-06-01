@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'Exam Ticker',
+  title: 'Final Exam Hustle',
   description: 'Countdown to your university final exam dates.',
 };
 

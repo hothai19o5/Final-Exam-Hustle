@@ -1,16 +1,14 @@
 "use client";
 
-import type { ExtractExamInfoOutput } from '@/ai/flows/extract-exam-info';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, BookOpen, Clock } from "lucide-react";
 import { useState, useEffect } from 'react';
 import { differenceInDays, parse as parseDateFns } from 'date-fns';
-
-type ExamEntry = ExtractExamInfoOutput[0];
+import type { ClientExamEntry } from './exam-ticker-page'; // Import type from parent
 
 interface ExamCardProps {
-  exam: ExamEntry;
+  exam: ClientExamEntry;
 }
 
 export function ExamCard({ exam }: ExamCardProps) {
@@ -24,26 +22,24 @@ export function ExamCard({ exam }: ExamCardProps) {
         try {
           const examDateObj = parseDateFns(exam.examDate, 'dd.MM.yyyy', new Date());
           const today = new Date();
-          today.setHours(0, 0, 0, 0); // Compare with start of today
+          today.setHours(0, 0, 0, 0); 
           const diff = differenceInDays(examDateObj, today);
           setDaysLeft(diff >= 0 ? diff : 0);
         } catch (e) {
-          console.error("Error parsing date:", exam.examDate, e);
-          // Fallback to AI provided daysRemaining if parsing fails
-          setDaysLeft(exam.daysRemaining >= 0 ? exam.daysRemaining : 0);
+          console.error("Error parsing date in ExamCard:", exam.examDate, e);
+          setDaysLeft(0); 
         }
       } else {
-         setDaysLeft(exam.daysRemaining >= 0 ? exam.daysRemaining : 0);
+         setDaysLeft(0);
       }
     };
 
-    calculateDaysLeft(); // Initial calculation
+    calculateDaysLeft(); 
     
-    // Update daily
-    intervalId = setInterval(calculateDaysLeft, 1000 * 60 * 60 * 24); // Check once a day
+    intervalId = setInterval(calculateDaysLeft, 1000 * 60 * 60 * 24); 
 
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, [exam.examDate, exam.daysRemaining]);
+    return () => clearInterval(intervalId); 
+  }, [exam.examDate]);
 
   return (
     <Card className="w-full shadow-lg hover:shadow-xl transition-shadow duration-300">
